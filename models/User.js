@@ -9,6 +9,19 @@ class User {
     this.updatedAt = new Date();
     this.deletedAt = null;
   }
+
+  toPlainObject() {
+    return {
+      name: this.name,
+      email: this.email,
+      password: this.password,
+      role: this.role,
+      points: this.points,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
+    };
+  }
 }
 
 module.exports = User;

@@ -1,26 +1,31 @@
 const User = require("../models/User");
 const { db, checkIfCollectionExists } = require("../lib/firebase");
+const { doc, setDoc } = require("firebase/firestore");
 
 function registerUser(req, res) {
-  const userData = req.body;
+  const { name, email, password } = req.body;
+
   // Validate user data
-  if (!userData.name || !userData.email || !userData.password) {
+  if (!name || !email || !password) {
     return res
       .status(400)
-      .json({ error: "Name, email, and password are required" });
+      .json({ error: "Name, email, and password are required" + res });
   }
 
   try {
-    const user = new User(userData.name, userData.email, userData.password);
+    const user = new User(name, email, password);
 
-    db.collection("users")
-      .add(user)
-      .then((docRef) => {
-        console.log("User created with ID: ", docRef.id);
-      })
-      .catch((error) => {
-        console.error("Error creating user: ", error);
-      });
+    setDoc(doc(db, "users", "new-user-id"), user.toPlainObject());
+
+    return res.status(200).json({ message: "User created succesfuly" });
+    // db.collection("users")
+    //   .add(user)
+    //   .then((docRef) => {
+    //     console.log("User created with ID: ", docRef.id);
+    //   })
+    //   .catch((error) => {
+    //     console.error("Error creating user: ", error);
+    //   });
   } catch (error) {
     console.error("Error creating user: ", error);
     return res.status(500).json({ error: "Internal server error" + error });
