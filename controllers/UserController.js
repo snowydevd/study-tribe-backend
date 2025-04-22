@@ -1,31 +1,44 @@
 const User = require("../models/User");
-const { db, checkIfCollectionExists } = require("../lib/firebase");
-const { doc, setDoc } = require("firebase/firestore");
+const { db } = require("../lib/firebase");
+const { getDoc, doc, setDoc, collection, getDocs } = require("firebase/firestore");
+const { createUserWithEmailAndPassword, getAuth } = require("firebase/auth");
+const bcrypt = require("bcryptjs");
+const auth = getAuth();
 
-function registerUser(req, res) {
-  const { name, email, password } = req.body;
+
+async function registerUser(req, res) {
+  let { name, email, password } = req.body;
 
   // Validate user data
-  if (!name || !email || !password) {
+  if (!email || !password) {
     return res
       .status(400)
       .json({ error: "Name, email, and password are required" + res });
   }
+  // if it doesnt have name, use email as name
+  if(!name){
+    name = email.split("@")[0];
+  }
 
   try {
-    const user = new User(name, email, password);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    setDoc(doc(db, "users", "new-user-id"), user.toPlainObject());
+    const userCredential = await createUserWithEmailAndPassword(
+      getAuth(),
+      email,
+      hashedPassword
+    );
+    const user = new User(name, email, hashedPassword);
 
-    return res.status(200).json({ message: "User created succesfuly" });
-    // db.collection("users")
-    //   .add(user)
-    //   .then((docRef) => {
-    //     console.log("User created with ID: ", docRef.id);
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error creating user: ", error);
-    //   });
+    const userDoc = doc(db, "users", userCredential.user.uid);
+
+    await setDoc(userDoc, {
+      ...user,
+      uid: userCredential.user.uid
+    });
+
+    return res.status(200).json({ message: "User created succesfuly, hashed password is: " + hashedPassword });
+
   } catch (error) {
     console.error("Error creating user: ", error);
     return res.status(500).json({ error: "Internal server error" + error });
