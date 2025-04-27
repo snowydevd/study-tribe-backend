@@ -14,8 +14,10 @@ app.get("/", (req, res) => {
 // * USER ROUTES
 app.get("/get-users", userController.getUsers);
 app.get("/get-user/:id", userController.getUser);
+app.post("/set-admin/:id", userController.setAdminRole);
+app.post("/set-user/:id", userController.setUserRole);
+app.post("/delete-user/:id", userController.deleteUser);
 // ! AUTH ROUTES
-
 app.post("/register", userController.registerUser);
 app.post("/login", userController.loginUser);
 app.post("/logout", userController.logoutUser);

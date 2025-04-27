@@ -62,27 +62,80 @@ async function getUser(req, res) {
   }
 }
 
+async function setAdminRole(req, res) {
+  const { id } = req.params;
 
-const verifyToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: "No auth token provided" });
+    const userDoc = doc(db, "users", id);
+    const userSnapshot = await getDoc(userDoc);
+
+    if (!userSnapshot.exists()) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ error: "Invalid token format" });
+    const userData = userSnapshot.data();
+
+    if (userData.role === "admin") {
+      return res.status(400).json({ error: "User is already an admin" });
     }
 
-    // Verify the token
-    await auth.verifyIdToken(token);
-    next();
+    // Update user role to admin
+    await setDoc(userDoc, { ...userData, role: "admin" }, { merge: true });
+
+    return res.status(200).json({ message: "User role updated to admin", user: { ...userData, role: "admin" } });
   } catch (error) {
-    console.error("Auth error:", error);
-    return res.status(401).json({ error: "Invalid or expired token" });
+    console.error("Error updating user role: ", error);
+    return res.status(500).json({ error: `Internal server error: ${error.message}` });
   }
-};
+}
+
+async function setUserRole(req, res) {
+  const { id } = req.params;
+
+  try {
+    const userDoc = doc(db, "users", id);
+    const userSnapshot = await getDoc(userDoc);
+
+    if (!userSnapshot.exists()) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userData = userSnapshot.data();
+
+    if (userData.role === "user") {
+      return res.status(400).json({ error: "User already has that role" });
+    }
+
+    // Update user role to admin
+    await setDoc(userDoc, { ...userData, role: "user" }, { merge: true });
+
+    return res.status(200).json({ message: "User role updated to admin", user: { ...userData, role: "user" } });
+  } catch (error) {
+    console.error("Error updating user role: ", error);
+    return res.status(500).json({ error: `Internal server error: ${error.message}` });
+  }
+}
+
+async function deleteUser(req, res) {
+  const { id } = req.params;
+
+  try {
+    const userDoc = doc(db, "users", id);
+    const userSnapshot = await getDoc(userDoc);
+
+    if (!userSnapshot.exists()) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Delete user from Firestore
+    await setDoc(userDoc, { deleted: true }, { merge: true });
+
+    return res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user: ", error);
+    return res.status(500).json({ error: `Internal server error: ${error.message}` });
+  }
+}
 
 
 //! ///////////////////////////////////////////////////////
@@ -203,7 +256,9 @@ module.exports = {
   getUser,
   loginUser,     
   logoutUser,
-  verifyToken,
+  setAdminRole,
+  setUserRole,
+  deleteUser,
 };
 
 
